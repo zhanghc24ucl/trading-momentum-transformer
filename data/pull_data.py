@@ -61,3 +61,43 @@ def pull_pinnacle_data_multiple(
         .drop(columns="index")
         .copy()
     )
+
+def pull_yfinance_data(ticker: str) -> pd.DataFrame:
+    """Pull yfinance stock data from CSV files"""
+    filename = ticker.replace('=', '_').replace('^', '_').replace('.', '_')
+    return (
+        pd.read_csv(os.path.join("data", "yfinance", f"{filename}.csv"), parse_dates=[0])
+        .rename(columns={"Date": "date"})
+        .set_index("date")
+        .replace(0.0, np.nan)
+    )
+
+def pull_yfinance_data_multiple(
+    tickers: List[str], fill_missing_dates=False
+) -> pd.DataFrame:
+    """Pull multiple yfinance tickers"""
+    data = pd.concat(
+        [pull_yfinance_data(ticker).assign(ticker=ticker).copy() for ticker in tickers]
+    )
+
+    if not fill_missing_dates:
+        return data.dropna().copy()
+
+    dates = data.reset_index()[["date"]].drop_duplicates().sort_values("date")
+    data = data.reset_index().set_index("ticker")
+
+    return (
+        pd.concat(
+            [
+                _fill_blanks(
+                    dates.merge(data.loc[t], on="date", how="left").assign(ticker=t)
+                )
+                for t in tickers
+            ]
+        )
+        .reset_index()
+        .set_index("date")
+        .drop(columns="index")
+        .copy()
+    )
+    

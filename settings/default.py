@@ -1009,3 +1009,54 @@ PINNACLE_ASSET_CLASS_MAPPING = {
     "ZM": "CM",
     "ZS": "CM",
 }
+
+# YFinance settings
+YFINANCE_TICKERS = [
+    # Major US stocks
+    "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "META", "NVDA", "NFLX",
+    "JPM", "JNJ", "V", "PG", "UNH", "HD", "MA", "DIS", "PYPL", "BAC",
+    "ADBE", "CRM", "CMCSA", "NFLX", "ABT", "KO", "PEP", "TMO", "COST",
+    "AVGO", "NKE", "WMT", "DHR", "TXN", "NEE", "LIN", "ACN", "CVX",
+    
+    # Add some ETFs for diversification
+    "SPY", "QQQ", "IWM", "VTI", "VOO", "IVV", "EFA", "EEM", "GLD", "TLT",
+    
+    # Some international stocks (adjust based on availability)
+    "BRK-B", "ASML", "TSM", "SAP", "NVO", "SHOP"
+]
+
+# YFinance-specific folder functions
+CPD_YFINANCE_OUTPUT_FOLDER = lambda lbw: os.path.join(
+    "data", f"yfinance_cpd_{(lbw if lbw else 'none')}lbw"
+)
+
+FEATURES_YFINANCE_FILE_PATH = lambda lbw: os.path.join(
+    "data", f"yfinance_cpd_{(lbw if lbw else 'none')}lbw.csv"
+)
+
+# Stock sector mapping (basic example - you can enhance this)
+YFINANCE_ASSET_CLASS_MAPPING = {
+    # Tech stocks
+    "AAPL": "TECH", "MSFT": "TECH", "GOOGL": "TECH", "META": "TECH", 
+    "NVDA": "TECH", "NFLX": "TECH", "ADBE": "TECH", "CRM": "TECH",
+    "PYPL": "TECH", "TSLA": "TECH",
+    
+    # Financial
+    "JPM": "FIN", "BAC": "FIN", "V": "FIN", "MA": "FIN",
+    
+    # Healthcare
+    "JNJ": "HEALTH", "UNH": "HEALTH", "ABT": "HEALTH", "TMO": "HEALTH",
+    
+    # Consumer
+    "PG": "CONSUMER", "KO": "CONSUMER", "PEP": "CONSUMER", "WMT": "CONSUMER",
+    "HD": "CONSUMER", "DIS": "CONSUMER", "NKE": "CONSUMER", "COST": "CONSUMER",
+    
+    # ETFs
+    "SPY": "ETF", "QQQ": "ETF", "IWM": "ETF", "VTI": "ETF", "VOO": "ETF",
+    "IVV": "ETF", "EFA": "ETF", "EEM": "ETF", "GLD": "ETF", "TLT": "ETF",
+    
+    # Others
+    "CVX": "ENERGY", "NEE": "ENERGY", "LIN": "MATERIALS",
+    "BRK-B": "FIN", "ASML": "TECH", "TSM": "TECH", "SAP": "TECH", 
+    "NVO": "HEALTH", "SHOP": "TECH"
+}

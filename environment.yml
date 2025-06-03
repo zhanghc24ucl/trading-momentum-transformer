@@ -1,0 +1,33 @@
+name: tsmom-env
+version: 1.0
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - matplotlib
+  - jupyter
+  - ipython
+  - h5py
+  - pip
+  - tensorflow
+  - pip:
+    - tensorflow-probability
+    - keras-tuner
+    - gpflow
+    - empyrical
+    - yfinance
+    - quandl
+    - black
+    - mypy
+    - dm-tree
+    - protobuf
+    - grpcio
+    - google-auth
+    - google-auth-oauthlib
+    - tensorboard
+    - opt-einsum
