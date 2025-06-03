@@ -134,4 +134,11 @@ nohup*
 data/*
 !data/pull_data.py
 !data/download_quandl_data.py
+!data/synthetic_quandl_data.py
 !data/__init__.py
+
+# Pycharm project files
+.idea/*
+
+# Temporal files
+tmp/*
