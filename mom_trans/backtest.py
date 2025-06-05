@@ -614,16 +614,16 @@ def run_classical_methods(
     """
     directory = _get_directory_name(long_only_experiment_name)
     if not os.path.exists(directory):
-        os.mkdir(directory)
+        os.makedirs(directory)
 
     directory = _get_directory_name(tsmom_experiment_name)
     if not os.path.exists(directory):
-        os.mkdir(directory)
+        os.makedirs(directory)
 
     for train_interval in train_intervals:
         directory = _get_directory_name(tsmom_experiment_name, train_interval)
         if not os.path.exists(directory):
-            os.mkdir(directory)
+            os.makedirs(directory)
         raw_data = pd.read_csv(features_file_path, parse_dates=True)
         reference = pd.read_csv(
             f"results/{reference_experiment}/{train_interval[1]}-{train_interval[2]}/captured_returns_sw.csv",

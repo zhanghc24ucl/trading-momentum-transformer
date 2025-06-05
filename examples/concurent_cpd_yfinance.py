@@ -10,17 +10,33 @@ from settings.default import (
     CPD_DEFAULT_LBW,
 )
 
+#--------------------#
+# Temporary Solution #
+#--------------------#
+YFINANCE_TICKERS = ['AAPL', 'GOOGL', 'MSFT', 'AMZN']
 
-N_WORKERS = len(QUANDL_TICKERS)
+CPD_YFINANCE_OUTPUT_FOLDER = lambda lbw: os.path.join(
+    "data", f"yfinance_cpd_{(lbw if lbw else 'none')}lbw"
+)
+CPD_YFINANCE_OUTPUT_FOLDER_DEFAULT = CPD_YFINANCE_OUTPUT_FOLDER(CPD_DEFAULT_LBW)
+
+FEATURES_YFINANCE_FILE_PATH = lambda lbw: os.path.join(
+    "data", f"yfinance_cpd_{(lbw if lbw else 'none')}lbw.csv"
+)
+FEATURES_YFINANCE_FILE_PATH_DEFAULT = FEATURES_YFINANCE_FILE_PATH(CPD_DEFAULT_LBW)
+#--------------------#
+
+
+N_WORKERS = len(YFINANCE_TICKERS)
 
 
 def main(lookback_window_length: int):
-    if not os.path.exists(CPD_QUANDL_OUTPUT_FOLDER(lookback_window_length)):
-        os.mkdir(CPD_QUANDL_OUTPUT_FOLDER(lookback_window_length))
+    if not os.path.exists(CPD_YFINANCE_OUTPUT_FOLDER(lookback_window_length)):
+        os.mkdir(CPD_YFINANCE_OUTPUT_FOLDER(lookback_window_length))
 
     all_processes = [
-        f'python -m examples.cpd_quandl "{ticker}" "{os.path.join(CPD_QUANDL_OUTPUT_FOLDER(lookback_window_length), ticker + ".csv")}" "1990-01-01" "2021-12-31" "{lookback_window_length}"'
-        for ticker in QUANDL_TICKERS
+        f'python -m examples.cpd_yfinance "{ticker}" "{os.path.join(CPD_YFINANCE_OUTPUT_FOLDER(lookback_window_length), ticker + ".csv")}" "2019-01-01" "2021-12-31" "{lookback_window_length}"'
+        for ticker in YFINANCE_TICKERS
     ]
     process_pool = multiprocessing.Pool(processes=N_WORKERS)
     process_pool.map(os.system, all_processes)

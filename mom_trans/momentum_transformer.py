@@ -629,14 +629,14 @@ class TftDeepMomentumNetworkModel(DeepMomentumNetworkModel):
         self._attention_components = attention_components
 
         adam = keras.optimizers.Adam(
-            lr=self.learning_rate, clipnorm=self.max_gradient_norm
+            learning_rate=self.learning_rate, clipnorm=self.max_gradient_norm
         )
 
         model = keras.Model(inputs=all_inputs, outputs=outputs)
 
         sharpe_loss = SharpeLoss(self.output_size).call
 
-        model.compile(loss=sharpe_loss, optimizer=adam, sample_weight_mode="temporal")
+        model.compile(loss=sharpe_loss, optimizer=adam)
 
         self._input_placeholder = all_inputs
 
