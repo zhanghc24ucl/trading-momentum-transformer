@@ -1,3 +1,4 @@
+
 import os
 from typing import List
 
@@ -6,7 +7,10 @@ import yfinance as yf
 
 import numpy as np
 
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "..")))
 from settings.default import PINNACLE_DATA_CUT, PINNACLE_DATA_FOLDER
+
 
 def pull_quandl_sample_data(ticker: str) -> pd.DataFrame:
     return (
@@ -61,3 +65,12 @@ def pull_pinnacle_data_multiple(
         .drop(columns="index")
         .copy()
     )
+
+def pull_yfinance_sample_data(ticker: str) -> pd.DataFrame:
+    return (
+        pd.read_csv(os.path.join("data", "yfinance", f"{ticker}.csv"), parse_dates=[0])
+        .rename(columns={"date": "date", "close": "close"})
+        .set_index("date")
+        .replace(0.0, np.nan)
+    )
+    
