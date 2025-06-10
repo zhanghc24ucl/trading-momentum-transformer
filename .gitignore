@@ -136,6 +136,7 @@ data/*
 !data/download_quandl_data.py
 !data/synthetic_quandl_data.py
 !data/__init__.py
+!data/cnfuts
 
 # Pycharm project files
 .idea/*

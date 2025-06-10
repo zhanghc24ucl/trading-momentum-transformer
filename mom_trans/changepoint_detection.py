@@ -353,7 +353,10 @@ def run_module(
 
     time_series_data["date"] = time_series_data.index
     time_series_data = time_series_data.reset_index(drop=True)
+    from time import time_ns
     for window_end in range(lookback_window_length + 1, len(time_series_data)):
+        t0 = time_ns()
+        print('start', window_end)
         ts_data_window = time_series_data.iloc[
             window_end - (lookback_window_length + 1) : window_end
         ][["date", "daily_returns"]].copy()
@@ -387,3 +390,5 @@ def run_module(
             writer.writerow(
                 [window_date, time_index, cp_loc, cp_loc_normalised, cp_score]
             )
+        t1 = time_ns()
+        print(output_csv_file_path.split('/')[-1], 'finish', f'{window_end}/{len(time_series_data)}', f'{(t1-t0)/1e9:.2f}s')

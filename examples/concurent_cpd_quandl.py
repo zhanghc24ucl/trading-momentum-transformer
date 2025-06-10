@@ -19,9 +19,11 @@ def main(lookback_window_length: int):
         f'python -m examples.cpd_quandl "{ticker}" "{os.path.join(CPD_QUANDL_OUTPUT_FOLDER(lookback_window_length), ticker + ".csv")}" "1990-01-01" "2021-12-31" "{lookback_window_length}"'
         for ticker in QUANDL_TICKERS
     ]
-    process_pool = multiprocessing.Pool(processes=N_WORKERS)
-    process_pool.map(os.system, all_processes)
-
+    # process_pool = multiprocessing.Pool(processes=2)
+    # process_pool.map(os.system, all_processes)
+    for cmd in all_processes:
+        print(f"Running command: {cmd}")
+        os.system(cmd)
 
 if __name__ == "__main__":
 

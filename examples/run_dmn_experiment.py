@@ -1,6 +1,6 @@
 import os
 import argparse
-from settings.hp_grid import HP_MINIBATCH_SIZE
+from settings.hp_grid import HP_MINIBATCH_SIZE_SMALL, HP_MINIBATCH_SIZE_LARGE, HP_MINIBATCH_SIZE
 import pandas as pd
 from settings.default import QUANDL_TICKERS
 from settings.fixed_params import MODLE_PARAMS
@@ -117,7 +117,7 @@ def main(
             params,
             changepoint_lbws,
             ASSET_CLASS_MAPPING,
-            [32, 64, 128] if lstm_time_steps == 252 else HP_MINIBATCH_SIZE,
+            HP_MINIBATCH_SIZE_SMALL if lstm_time_steps == 252 else HP_MINIBATCH_SIZE_LARGE,
             test_window_size,
         )
 

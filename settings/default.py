@@ -17,107 +17,158 @@ FEATURES_QUANDL_FILE_PATH = lambda lbw: os.path.join(
 
 FEATURES_QUANDL_FILE_PATH_DEFAULT = FEATURES_QUANDL_FILE_PATH(CPD_DEFAULT_LBW)
 
+# QUANDL_TICKERS = [
+#     "ICE_SB",
+#     "CME_SF",
+#     "CME_SI",
+#     "CME_SM",
+#     "CME_SP",
+#     "ICE_OJ",
+#     "CME_TY",
+#     "CME_US",
+#     "CME_W",
+#     "CME_CL",
+#     "CME_CD",
+#     "CME_C",
+#     "ICE_KC",
+#     "CME_GC",
+#     "CME_AD",
+#     "ICE_DX",
+#     "ICE_CT",
+#     "CME_BP",
+#     "CME_S",
+#     "ICE_CC",
+#     "CME_BO",
+#     "CME_PL",
+#     "CME_PA",
+#     "CME_O",
+#     "CME_HG",
+#     "CME_FC",
+#     "CME_HO",
+#     "CME_LN",
+#     "CME_LC",
+#     "CME_LB",
+#     "CME_RR",
+#     "CME_KW",
+#     "CME_JY",
+#     "CME_FV",
+#     "CME_NG",
+#     "ICE_G",
+#     "CME_NK",
+#     "CME_MD",
+#     "ICE_B",
+#     "LIFFE_C",
+#     "LIFFE_RC",
+#     "CME_MP",
+#     "ICE_RS",
+#     "EUREX_FDAX",
+#     "ICE_M",
+#     "CME_ES",
+#     "CME_B3",
+#     "CME_EC",
+#     "EUREX_FGBM",
+#     "CME_NQ",
+#     "CME_BR",
+#     "CME_NE",
+#     "ICE_SY",
+#     "ICE_ZR",
+#     "ICE_SS",
+#     "ODE_AB",
+#     "ICE_AR",
+#     "ICE_MP",
+#     "ICE_BPB",
+#     "ICE_P",
+#     "CBOE_VX",
+#     "CME_RB",
+#     "ICE_T",
+#     "ICE_N",
+#     "ICE_O",
+#     "ICE_ZJ",
+#     "LIFFE_T",
+#     "CME_RF",
+#     "CME_TU",
+#     "CME_YM",
+#     "LIFFE_R",
+#     "CME_RU",
+#     "ICE_NT",
+#     "ICE_C",
+#     "ICE_NCF",
+#     "LIFFE_FCE",
+#     "LIFFE_W",
+#     "CME_AW",
+#     "CME_BZ",
+#     "CME_EH",
+#     "ICE_KRU",
+#     "ICE_TIB",
+#     "ICE_CEU",
+#     "CME_UL",
+#     "EUREX_FGBL",
+#     "EUREX_FESX",
+#     "ICE_GNM",
+#     "ICE_GER",
+#     "EUREX_FOAT",
+#     "EUREX_FBTS",
+#     "EUREX_CONF",
+#     "EUREX_FBTP",
+#     "EUREX_FGBX",
+#     "EUREX_FRDX",
+#     "EUREX_FVS",
+#     "EUREX_FTDX",
+#     "EUREX_FSTX",
+#     "EUREX_FSMM",
+#     "EUREX_FSMI",
+#     "EUREX_FSLI",
+# ]
+
 QUANDL_TICKERS = [
-    "ICE_SB",
-    "CME_SF",
-    "CME_SI",
-    "CME_SM",
-    "CME_SP",
-    "ICE_OJ",
-    "CME_TY",
-    "CME_US",
-    "CME_W",
-    "CME_CL",
-    "CME_CD",
-    "CME_C",
-    "ICE_KC",
-    "CME_GC",
-    "CME_AD",
-    "ICE_DX",
-    "ICE_CT",
-    "CME_BP",
-    "CME_S",
-    "ICE_CC",
-    "CME_BO",
-    "CME_PL",
-    "CME_PA",
-    "CME_O",
-    "CME_HG",
-    "CME_FC",
-    "CME_HO",
-    "CME_LN",
-    "CME_LC",
-    "CME_LB",
-    "CME_RR",
-    "CME_KW",
-    "CME_JY",
-    "CME_FV",
-    "CME_NG",
-    "ICE_G",
-    "CME_NK",
-    "CME_MD",
-    "ICE_B",
-    "LIFFE_C",
-    "LIFFE_RC",
-    "CME_MP",
-    "ICE_RS",
-    "EUREX_FDAX",
-    "ICE_M",
-    "CME_ES",
-    "CME_B3",
-    "CME_EC",
-    "EUREX_FGBM",
-    "CME_NQ",
-    "CME_BR",
-    "CME_NE",
-    "ICE_SY",
-    "ICE_ZR",
-    "ICE_SS",
-    "ODE_AB",
-    "ICE_AR",
-    "ICE_MP",
-    "ICE_BPB",
-    "ICE_P",
-    "CBOE_VX",
-    "CME_RB",
-    "ICE_T",
-    "ICE_N",
-    "ICE_O",
-    "ICE_ZJ",
-    "LIFFE_T",
-    "CME_RF",
-    "CME_TU",
-    "CME_YM",
-    "LIFFE_R",
-    "CME_RU",
-    "ICE_NT",
-    "ICE_C",
-    "ICE_NCF",
-    "LIFFE_FCE",
-    "LIFFE_W",
-    "CME_AW",
-    "CME_BZ",
-    "CME_EH",
-    "ICE_KRU",
-    "ICE_TIB",
-    "ICE_CEU",
-    "CME_UL",
-    "EUREX_FGBL",
-    "EUREX_FESX",
-    "ICE_GNM",
-    "ICE_GER",
-    "EUREX_FOAT",
-    "EUREX_FBTS",
-    "EUREX_CONF",
-    "EUREX_FBTP",
-    "EUREX_FGBX",
-    "EUREX_FRDX",
-    "EUREX_FVS",
-    "EUREX_FTDX",
-    "EUREX_FSTX",
-    "EUREX_FSMM",
-    "EUREX_FSMI",
-    "EUREX_FSLI",
+    # # stock index futures
+    # 'CN_IC',  # CSI 500 Index Futures
+    # 'CN_IF',  # CSI 300 Index Futures
+    # 'CN_IH',  # SSE 50 Index Futures
+    #
+    # # precise metals
+    # 'CN_AG',  # Silver
+    # 'CN_AU',  # Gold
+
+    # non-ferrous metals
+    'CN_AL',  # Aluminum
+    'CN_CU',  # Copper
+    'CN_NI',  # Nickel
+    'CN_PB',  # Lead
+    'CN_ZN',  # Zinc
+    'CN_SN',  # Tin
+
+    # # black commodities & building materials
+    # 'CN_HC',  # Hot-Rolled Coil
+    # 'CN_RB',  # Rebar
+    # 'CN_JC',  # Coke
+    # 'CN_JM',  # Coking Coal
+    # 'CN_IO',  # Iron Ore
+    # 'CN_FG',  # Float Glass
+    #
+    # # energy & chemicals
+    # 'CN_ME',  # Methanol
+    # 'CN_BU',  # Bitumen
+    # 'CN_RU',  # Rubber
+    # 'CN_LP',  # Polyethylene (LLDPE)
+    # 'CN_PP',  # Polypropylene
+    # 'CN_PV',  # PVC
+    # 'CN_TA',  # PTA
+    #
+    # # Agricultural
+    # 'CN_CN',  # Corn
+    # 'CN_CS',  # Corn Starch
+    # 'CN_HA',  # Soybean
+    # 'CN_HM',  # Soybean Meal
+    # 'CN_HY',  # Soybean Oil
+    #
+    # 'CN_RM',  # Rapeseed Meal
+    # 'CN_RO',  # Rapeseed Oil
+    #
+    # 'CN_JD',  # Egg
+    # 'CN_SR',  # White Sugar
+    # 'CN_PO',  # Palm Oil
+    # 'CN_CF',  # Cotton
 ]
 
 ALL_QUANDL_CODES = [

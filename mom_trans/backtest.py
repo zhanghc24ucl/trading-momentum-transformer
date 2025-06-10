@@ -514,10 +514,18 @@ def run_single_window(
 
     # save model and get rid of the hp dir
     best_directory = os.path.join(directory, "best")
-    best_model.save_weights(os.path.join(best_directory, "checkpoints", "checkpoint"))
+    checkpoint_dir = os.path.join(best_directory, "checkpoints")
+    # After Keras3.0, the weights file must end with .weights.h5
+    checkpoint_path = os.path.join(checkpoint_dir, "checkpoint.weights.h5")
+
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    best_model.save_weights(checkpoint_path)
+
     with open(os.path.join(best_directory, "hyperparameters.json"), "w") as file:
         file.write(json.dumps(best_hp, indent=4))
-    shutil.rmtree(hp_directory)
+
+    # delete the temporal files if needed.
+    # shutil.rmtree(hp_directory)
 
     save_results(
         results_sw,

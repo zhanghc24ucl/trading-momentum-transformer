@@ -4,7 +4,6 @@ import pathlib
 import shutil
 import copy
 
-from keras_tuner.tuners.randomsearch import RandomSearch
 from abc import ABC, abstractmethod
 
 from tensorflow import keras
@@ -87,8 +86,6 @@ class SharpeValidationLoss(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         positions = self.model.predict(
             self.inputs,
-            workers=self.n_multiprocessing_workers,
-            use_multiprocessing=True,  # , batch_size=1
         )
 
         captured_returns = tf.math.unsorted_segment_mean(
@@ -148,9 +145,6 @@ class TunerValidationLoss(kt.tuners.RandomSearch):
         )
 
     def run_trial(self, trial, *args, **kwargs):
-        kwargs["batch_size"] = trial.hyperparameters.Choice(
-            "batch_size", values=self.hp_minibatch_size
-        )
         super(TunerValidationLoss, self).run_trial(trial, *args, **kwargs)
 
 
@@ -168,6 +162,10 @@ class TunerDiversifiedSharpe(kt.tuners.RandomSearch):
         **kwargs,
     ):
         self.hp_minibatch_size = hp_minibatch_size
+        if hyperparameters is None:
+            hyperparameters = kt.HyperParameters()
+        hyperparameters.Choice("batch_size", values=self.hp_minibatch_size)
+
         super().__init__(
             hypermodel,
             objective,
@@ -180,16 +178,22 @@ class TunerDiversifiedSharpe(kt.tuners.RandomSearch):
         )
 
     def run_trial(self, trial, *args, **kwargs):
-        kwargs["batch_size"] = trial.hyperparameters.Choice(
-            "batch_size", values=self.hp_minibatch_size
-        )
+        try:
+            self._run_trial(trial, *args, **kwargs)
+        finally:
+            # reset
+            import gc
+            from keras import backend as K
+            K.clear_session()
+            gc.collect()
 
+    def _run_trial(self, trial, *args, **kwargs):
         original_callbacks = kwargs.pop("callbacks", [])
 
         for callback in original_callbacks:
             if isinstance(callback, SharpeValidationLoss):
                 callback.set_weights_save_loc(
-                    self._get_checkpoint_fname(trial.trial_id, self._reported_step)
+                    self._get_checkpoint_fname(trial.trial_id)
                 )
 
         # Run the training process multiple times.
@@ -198,12 +202,12 @@ class TunerDiversifiedSharpe(kt.tuners.RandomSearch):
             copied_fit_kwargs = copy.copy(kwargs)
             callbacks = self._deepcopy_callbacks(original_callbacks)
             self._configure_tensorboard_dir(callbacks, trial, execution)
-            callbacks.append(kt.engine.tuner_utils.TunerCallback(self, trial))
+            # callbacks.append(kt.engine.tuner_utils.TunerCallback(self, trial))
             # Only checkpoint the best epoch across all executions.
             # callbacks.append(model_checkpoint)
             copied_fit_kwargs["callbacks"] = callbacks
 
-            history = self._build_and_fit_model(trial, args, copied_fit_kwargs)
+            history = self._build_and_fit_model(trial, *args, **copied_fit_kwargs)
             for metric, epoch_values in history.history.items():
                 if self.oracle.objective.direction == "min":
                     best_value = np.min(epoch_values)
@@ -216,7 +220,7 @@ class TunerDiversifiedSharpe(kt.tuners.RandomSearch):
         for metric, execution_values in metrics.items():
             averaged_metrics[metric] = np.mean(execution_values)
         self.oracle.update_trial(
-            trial.trial_id, metrics=averaged_metrics, step=self._reported_step
+            trial.trial_id, metrics=averaged_metrics, step=0
         )
 
 
@@ -307,8 +311,6 @@ class DeepMomentumNetworkModel(ABC):
                 # covered by Tuner class
                 callbacks=callbacks,
                 shuffle=True,
-                use_multiprocessing=True,
-                workers=self.n_multiprocessing_workers,
             )
         else:
             callbacks = [
@@ -334,8 +336,6 @@ class DeepMomentumNetworkModel(ABC):
                 ),
                 callbacks=callbacks,
                 shuffle=True,
-                use_multiprocessing=True,
-                workers=self.n_multiprocessing_workers,
                 # validation_batch_size=1,
             )
 
@@ -386,8 +386,6 @@ class DeepMomentumNetworkModel(ABC):
                 batch_size=hyperparameters["batch_size"],
                 callbacks=callbacks,
                 shuffle=True,
-                use_multiprocessing=True,
-                workers=self.n_multiprocessing_workers,
             )
             model.load_weights(temp_folder)
         else:
@@ -414,8 +412,6 @@ class DeepMomentumNetworkModel(ABC):
                 ),
                 callbacks=callbacks,
                 shuffle=True,
-                use_multiprocessing=True,
-                workers=self.n_multiprocessing_workers,
             )
         return model
 
@@ -441,8 +437,6 @@ class DeepMomentumNetworkModel(ABC):
                 x=inputs,
                 y=outputs,
                 sample_weight=active_entries,
-                workers=32,
-                use_multiprocessing=True,
             )
 
             metrics = pd.Series(metric_values, model.metrics_names)
@@ -473,8 +467,6 @@ class DeepMomentumNetworkModel(ABC):
 
         positions = model.predict(
             inputs,
-            workers=self.n_multiprocessing_workers,
-            use_multiprocessing=True,  # , batch_size=1
         )
         if sliding_window:
             positions = positions[:, -1, 0].flatten()
@@ -510,7 +502,6 @@ class LstmDeepMomentumNetworkModel(DeepMomentumNetworkModel):
         dropout_rate = hp.Choice("dropout_rate", values=HP_DROPOUT_RATE)
         max_gradient_norm = hp.Choice("max_gradient_norm", values=HP_MAX_GRADIENT_NORM)
         learning_rate = hp.Choice("learning_rate", values=HP_LEARNING_RATE)
-        # minibatch_size = hp.Choice("hidden_layer_size", HP_MINIBATCH_SIZE)
 
         input = keras.Input((self.time_steps, self.input_size))
         lstm = tf.keras.layers.LSTM(
@@ -536,13 +527,12 @@ class LstmDeepMomentumNetworkModel(DeepMomentumNetworkModel):
 
         model = keras.Model(inputs=input, outputs=output)
 
-        adam = keras.optimizers.Adam(lr=learning_rate, clipnorm=max_gradient_norm)
+        adam = keras.optimizers.Adam(learning_rate=learning_rate, clipnorm=max_gradient_norm)
 
         sharpe_loss = SharpeLoss(self.output_size).call
 
         model.compile(
             loss=sharpe_loss,
             optimizer=adam,
-            sample_weight_mode="temporal",
         )
         return model
