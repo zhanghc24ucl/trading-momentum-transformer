@@ -352,6 +352,9 @@ def run_module(
         writer.writerow(csv_fields)
 
     time_series_data["date"] = time_series_data.index
+    
+    print(time_series_data["date"])
+    
     time_series_data = time_series_data.reset_index(drop=True)
     for window_end in range(lookback_window_length + 1, len(time_series_data)):
         ts_data_window = time_series_data.iloc[
@@ -360,7 +363,7 @@ def run_module(
         ts_data_window["X"] = ts_data_window.index.astype(float)
         ts_data_window = ts_data_window.rename(columns={"daily_returns": "Y"})
         time_index = window_end - 1
-        window_date = ts_data_window["date"].iloc[-1].strftime("%Y-%m-%d")
+        window_date = ts_data_window["date"].iloc[-1].strftime("%Y-%m-%d %H:%M:%S")
 
         try:
             if use_kM_hyp_to_initialise_kC:

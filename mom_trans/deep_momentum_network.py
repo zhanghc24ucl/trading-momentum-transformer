@@ -4,7 +4,7 @@ import pathlib
 import shutil
 import copy
 
-from keras_tuner.tuners.randomsearch import RandomSearch
+from keras_tuner.tuners import RandomSearch
 from abc import ABC, abstractmethod
 
 from tensorflow import keras
@@ -71,7 +71,7 @@ class SharpeValidationLoss(keras.callbacks.Callback):
         self.num_time = num_time
         self.min_delta = min_delta
 
-        self.best_sharpe = np.NINF  # since calculating positive Sharpe...
+        self.best_sharpe = -np.inf  # since calculating positive Sharpe...
         # self.best_weights = None
         self.weights_save_location = weights_save_location
         # self.verbose = verbose
@@ -82,7 +82,7 @@ class SharpeValidationLoss(keras.callbacks.Callback):
     def on_train_begin(self, logs=None):
         self.patience_counter = 0
         self.stopped_epoch = 0
-        self.best_sharpe = np.NINF
+        self.best_sharpe = -np.inf
 
     def on_epoch_end(self, epoch, logs=None):
         positions = self.model.predict(
@@ -536,13 +536,12 @@ class LstmDeepMomentumNetworkModel(DeepMomentumNetworkModel):
 
         model = keras.Model(inputs=input, outputs=output)
 
-        adam = keras.optimizers.Adam(lr=learning_rate, clipnorm=max_gradient_norm)
+        adam = keras.optimizers.Adam(learning_rate=learning_rate, clipnorm=max_gradient_norm)
 
         sharpe_loss = SharpeLoss(self.output_size).call
 
         model.compile(
             loss=sharpe_loss,
             optimizer=adam,
-            sample_weight_mode="temporal",
         )
         return model

@@ -12,7 +12,7 @@ from settings.default import (
 # Temporary Solution #
 #--------------------#
 
-LOBSTER_TICKERS = ['AAPL', 'GOOG', 'MSFT', 'AMZN']
+LOBSTER_TICKERS = ['AAPL']
 
 CPD_LOBSTER_OUTPUT_FOLDER = lambda lbw: os.path.join(
     "data", f"lobster_cpd_{(lbw if lbw else 'none')}lbw"
@@ -32,7 +32,7 @@ def main(lookback_window_length: int):
         os.makedirs(CPD_LOBSTER_OUTPUT_FOLDER(lookback_window_length))
 
     all_processes = [
-        f'python -m examples.cpd_yfinance "{ticker}" "{os.path.join(CPD_LOBSTER_OUTPUT_FOLDER(lookback_window_length), ticker.replace("=", "_").replace("^", "_").replace(".", "_") + ".csv")}" "1990-01-01" "2021-12-31" "{lookback_window_length}"'
+        f'python -m examples.cpd_lobster "{ticker}" "{os.path.join(CPD_LOBSTER_OUTPUT_FOLDER(lookback_window_length), ticker.replace("=", "_").replace("^", "_").replace(".", "_") + ".csv")}" "1990-01-01" "2025-12-31" "{lookback_window_length}"'
         for ticker in LOBSTER_TICKERS
     ]
     process_pool = multiprocessing.Pool(processes=N_WORKERS)

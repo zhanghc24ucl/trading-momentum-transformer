@@ -21,12 +21,11 @@ def pull_lobster_data(ticker: str) -> pd.DataFrame:
         .replace(0.0, np.nan)
     )
 
-
 #--------------------#
 # Temporary Solution #
 #--------------------#
 
-LOBSTER_TICKERS = ['AAPL', 'GOOG', 'MSFT', 'AMZN']
+LOBSTER_TICKERS = ['AAPL']
 
 CPD_LOBSTER_OUTPUT_FOLDER = lambda lbw: os.path.join(
     "data", f"lobster_cpd_{(lbw if lbw else 'none')}lbw"

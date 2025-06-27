@@ -183,10 +183,70 @@ class ModelFeatures:
         # for static_variables
         # self._column_definition.append(("ticker", DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT))
 
-        test = df.loc[years >= test_boundary]
+        # Handle very short time windows (like 8 minutes of intraday data)
+        data_duration = df.index.max() - df.index.min()
+        print(f"Total data duration: {data_duration}")
+        print(f"Data frequency: ~{len(df) / (data_duration.total_seconds() / 60):.1f} records per minute")
+        
+        # Convert boundaries to datetime - handle intraday data
+        if isinstance(test_boundary, int):
+            # For year boundaries with intraday data, use the year but keep time precision
+            test_boundary = pd.Timestamp(f"{test_boundary}-01-01 09:30:00")
+        elif isinstance(test_boundary, str):
+            test_boundary = pd.to_datetime(test_boundary)
+            # If only date provided for intraday data, set to market open
+            if test_boundary.time() == pd.Timestamp("00:00:00").time():
+                test_boundary = test_boundary.replace(hour=9, minute=30, second=0, microsecond=0)
+        elif isinstance(test_boundary, pd.Timestamp):
+            test_boundary = test_boundary
+        else:
+            test_boundary = pd.to_datetime(test_boundary)
+        
+        if isinstance(test_end, int):
+            # For year boundaries, set to end of trading day
+            test_end = pd.Timestamp(f"{test_end}-12-31 16:00:00")
+        elif isinstance(test_end, str):
+            test_end = pd.to_datetime(test_end)
+            # If only date provided, set to market close
+            if test_end.time() == pd.Timestamp("00:00:00").time():
+                test_end = test_end.replace(hour=16, minute=0, second=0, microsecond=0)
+        elif isinstance(test_end, pd.Timestamp):
+            test_end = test_end
+        else:
+            test_end = pd.to_datetime(test_end)
+        
+        print(f"Data date range: {df.index.min()} to {df.index.max()}")
+        print(f"Test boundary: {test_boundary}")
+        print(f"Test end: {test_end}")
+        
+        # For very short time windows, adjust test_boundary to be within data range
+        if test_boundary < df.index.min() or test_boundary > df.index.max():
+            # Calculate boundary as percentage of data duration
+            data_start = df.index.min()
+            data_end = df.index.max()
+            total_duration = data_end - data_start
+            
+            # Use 70% of data for train+valid, 30% for test
+            test_start_offset = total_duration * 0.7
+            test_boundary = data_start + test_start_offset
+            test_end = data_end
+            
+            print(f"Adjusted test_boundary to: {test_boundary}")
+            print(f"Adjusted test_end to: {test_end}")
+        
+        # Similarly adjust test_end if needed
+        if test_end < df.index.min() or test_end > df.index.max():
+            test_end = df.index.max()
+            print(f"Adjusted test_end to data maximum: {test_end}")
+        
+        # Split data using datetime comparison instead of year
+        test = df.loc[df.index >= test_boundary]
+        print(f"Test data shape: {test.shape}")
 
         if split_tickers_individually:
-            trainvalid = df.loc[years < test_boundary]
+            trainvalid = df.loc[df.index < test_boundary]
+            print(f"Train+Valid data shape: {trainvalid.shape}")
+            
             if lags:
                 tickers = (
                     trainvalid.groupby("ticker")["ticker"].count()
@@ -195,87 +255,185 @@ class ModelFeatures:
                 tickers = tickers[tickers].index.tolist()
             else:
                 tickers = list(trainvalid.ticker.unique())
+            
+            print(f"Available tickers: {len(tickers)}")
+            if len(tickers) == 0:
+                raise ValueError("No tickers found in training data")
 
             train, valid = [], []
             for ticker in tickers:
                 calib_data = trainvalid[trainvalid.ticker == ticker]
                 T = len(calib_data)
+                if T == 0:
+                    print(f"WARNING: No data for ticker {ticker}")
+                    continue
+                    
                 train_valid_split = int(train_valid_ratio * T)
-                train.append(calib_data.iloc[:train_valid_split, :].copy())
-                valid.append(calib_data.iloc[train_valid_split:, :].copy())
+                if train_valid_split == 0:
+                    print(f"WARNING: No training data for ticker {ticker} (T={T})")
+                    continue
+                    
+                train_data = calib_data.iloc[:train_valid_split, :].copy()
+                valid_data = calib_data.iloc[train_valid_split:, :].copy()
+                
+                if len(train_data) > 0:
+                    train.append(train_data)
+                if len(valid_data) > 0:
+                    valid.append(valid_data)
+            
+            print(f"Train batches: {len(train)}, Valid batches: {len(valid)}")
+            
+            # Safety check before concatenation
+            if len(train) == 0:
+                raise ValueError("No training data available after splitting. Check data and parameters.")
+            if len(valid) == 0:
+                raise ValueError("No validation data available after splitting. Check data and parameters.")
 
             train = pd.concat(train)
             valid = pd.concat(valid)
+            print(f"Final train shape: {train.shape}, valid shape: {valid.shape}")
 
             test = test[test.ticker.isin(tickers)]
+            
         else:
-            trainvalid = df.loc[years < test_boundary]
-            dates = np.sort(trainvalid.index.unique())
-            split_index = int(train_valid_ratio * len(dates))
-            train_dates = pd.DataFrame({"date": dates[:split_index]})
-            valid_dates = pd.DataFrame({"date": dates[split_index:]})
+            trainvalid = df.loc[df.index < test_boundary]
+            
+            # For very short time series, use time-based splitting
+            unique_timestamps = trainvalid.index.drop_duplicates().sort_values()
+            total_points = len(unique_timestamps)
+            
+            print(f"Total data points for train+valid: {total_points}")
+            
+            # Ensure minimum data points for each split
+            min_train_points = max(10, self.total_time_steps)  # At least 10 points or total_time_steps
+            min_valid_points = max(5, self.total_time_steps // 2)  # At least 5 points or half total_time_steps
+            
+            if total_points < (min_train_points + min_valid_points):
+                print(f"WARNING: Only {total_points} points available, need at least {min_train_points + min_valid_points}")
+                # Adjust minimums for very small datasets
+                min_train_points = max(2, total_points // 2)
+                min_valid_points = max(1, total_points - min_train_points)
+                print(f"Adjusted minimums: train={min_train_points}, valid={min_valid_points}")
+            
+            # Calculate split ensuring minimums
+            split_index = max(min_train_points, int(train_valid_ratio * total_points))
+            split_index = min(split_index, total_points - min_valid_points)
+            
+            if split_index > 0 and split_index < total_points:
+                train_end_timestamp = unique_timestamps[split_index - 1]
+                valid_start_timestamp = unique_timestamps[split_index]
+            else:
+                # Emergency fallback for very small datasets
+                mid_point = total_points // 2
+                train_end_timestamp = unique_timestamps[mid_point - 1] if mid_point > 0 else unique_timestamps[0]
+                valid_start_timestamp = unique_timestamps[mid_point] if mid_point < total_points else unique_timestamps[-1]
+            
+            print(f"Train period: {trainvalid.index.min()} to {train_end_timestamp}")
+            print(f"Valid period: {valid_start_timestamp} to {trainvalid.index.max()}")
+            print(f"Split at index {split_index} of {total_points} timestamps")
 
-            train = (
-                trainvalid.reset_index()
-                .merge(train_dates, on="date")
-                .set_index("date")
-                .copy()
-            )
-            valid = (
-                trainvalid.reset_index()
-                .merge(valid_dates, on="date")
-                .set_index("date")
-                .copy()
-            )
+            # Split using precise timestamp comparison
+            train = trainvalid.loc[trainvalid.index <= train_end_timestamp].copy()
+            valid = trainvalid.loc[trainvalid.index > train_end_timestamp].copy()  # Use > to avoid overlap
+            
+            print(f"Train shape: {train.shape}, Valid shape: {valid.shape}")
+            
+            # For short time series, be more lenient with ticker requirements
             if lags:
+                # Reduce requirements for very short time series
+                min_seq_length = min(self.total_time_steps, max(3, total_points // 4))
                 tickers = (
-                    valid.groupby("ticker")["ticker"].count() > self.total_time_steps
+                    valid.groupby("ticker")["ticker"].count() >= min_seq_length
                 )
                 tickers = tickers[tickers].index.tolist()
                 train = train[train.ticker.isin(tickers)]
-
             else:
-                # at least one full training sequence
-                # tickers = (
-                #     train.groupby("ticker")["ticker"].count() > self.total_time_steps
-                # )
-                # tickers = tickers[tickers].index.tolist()
-                tickers = list(train.ticker.unique())
+                # For short time series, just require some data in both splits
+                train_ticker_counts = train.groupby("ticker").size()
+                valid_ticker_counts = valid.groupby("ticker").size()
+                
+                # Very lenient requirements for short time series
+                min_points_per_ticker = max(1, total_points // 20)  # At least 5% of data
+                
+                valid_train_tickers = train_ticker_counts[train_ticker_counts >= min_points_per_ticker].index
+                valid_valid_tickers = valid_ticker_counts[valid_ticker_counts >= min_points_per_ticker].index
+                
+                tickers = list(set(valid_train_tickers).intersection(set(valid_valid_tickers)))
+                
+                # If no intersection, just use tickers with most data
+                if len(tickers) == 0:
+                    all_ticker_counts = df.groupby("ticker").size().sort_values(ascending=False)
+                    tickers = all_ticker_counts.head(min(5, len(all_ticker_counts))).index.tolist()
+                    print(f"No common tickers found, using top {len(tickers)} tickers by data volume")
+                
+            print(f"Selected tickers: {len(tickers)} - {tickers}")
+            
+            if len(tickers) == 0:
+                raise ValueError("No suitable tickers found for short time series data")
+                
+            train = train[train.ticker.isin(tickers)]
             valid = valid[valid.ticker.isin(tickers)]
             test = test[test.ticker.isin(tickers)]
+            
+            # Final check for minimum data
+            if len(train) == 0:
+                raise ValueError("No training data after ticker filtering")
+            if len(valid) == 0:
+                print("WARNING: No validation data, using last 20% of training data for validation")
+                # Emergency: split training data
+                train_size = int(0.8 * len(train))
+                valid = train.iloc[train_size:].copy()
+                train = train.iloc[:train_size].copy()
 
-        # don't think this is needed...
+        # Filter test data by end date if specified
         if test_end:
-            # test = test[test["year"] < ((test_end + add_buffer_years_to_test))]
-            test = test[test["year"] < test_end]
+            test = test.loc[test.index < test_end]
+            print(f"Test data after end date filter: {test.shape}")
 
-        test_with_buffer = pd.concat(
-            [
-                pd.concat(
-                    [
-                        trainvalid[trainvalid.ticker == t].iloc[
-                            -(self.total_time_steps - 1) :
-                        ],  # TODO this
-                        test[test.ticker == t],
-                    ]
-                ).sort_index()
-                for t in tickers
-            ]
-        )
+        # Create test_with_buffer using datetime filtering
+        test_with_buffer_list = []
+        for t in tickers:
+            ticker_trainvalid = trainvalid[trainvalid.ticker == t]
+            ticker_test = test[test.ticker == t]
+            
+            if len(ticker_trainvalid) >= self.total_time_steps - 1:
+                buffer_data = ticker_trainvalid.iloc[-(self.total_time_steps - 1):]
+                combined = pd.concat([buffer_data, ticker_test]).sort_index()
+                test_with_buffer_list.append(combined)
+            elif len(ticker_test) > 0:
+                # If not enough buffer data, just use test data
+                test_with_buffer_list.append(ticker_test)
+        
+        if test_with_buffer_list:
+            test_with_buffer = pd.concat(test_with_buffer_list)
+        else:
+            test_with_buffer = pd.DataFrame()  # Empty dataframe as fallback
+        
+        print(f"Test with buffer shape: {test_with_buffer.shape}")
 
-        # to deal with case where fixed window did not have a full sequence
+        # Handle case where fixed window did not have a full sequence
         if lags:
+            additional_test_data = []
             for t in tickers:
                 test_ticker = test[test["ticker"] == t]
                 diff = len(test_ticker) - self.total_time_steps
                 if diff < 0:
-                    test = pd.concat(
-                        [trainvalid[trainvalid["ticker"] == t][diff:], test]
-                    )
-                    # maybe should sort here but probably not needed
+                    # Need more data from trainvalid
+                    additional_data = trainvalid[trainvalid["ticker"] == t].iloc[diff:]
+                    additional_test_data.append(additional_data)
+            
+            if additional_test_data:
+                test = pd.concat([pd.concat(additional_test_data), test]).sort_index()
 
         self.tickers = tickers
         self.num_tickers = len(tickers)
+        
+        print(f"Final tickers: {len(self.tickers)}")
+        print(f"Setting scalers with train data shape: {train.shape}")
+        
+        if len(train) == 0:
+            raise ValueError("No training data available for scaling")
+            
         self.set_scalers(train)
 
         train, valid, test, test_with_buffer = [
@@ -299,6 +457,7 @@ class ModelFeatures:
             self.valid = self._batch_data(valid, train_valid_sliding)
             self.test_fixed = self._batch_data(test, False)
             self.test_sliding = self._batch_data(test_with_buffer, True)
+            
 
     def set_scalers(self, df):
         """Calibrates scalers using the data supplied.
@@ -578,7 +737,7 @@ class ModelFeatures:
                 active_entries = np.ones((arr.shape[0], arr.shape[1], arr.shape[2]))
                 for i in range(batch_size):
                     active_entries[i, sequence_lengths[i] :, :] = 0
-                sequence_lengths = np.array(sequence_lengths, dtype=np.int)
+                sequence_lengths = np.array(sequence_lengths, dtype=np.int64)
 
                 if "active_entries" not in data_map:
                     data_map["active_entries"] = [
